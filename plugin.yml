@@ -1,0 +1,15 @@
+name: CrystalWars
+main: org.mswsplex.MSWS.Crystal.Main
+version: 1.1
+description: CrystalWars
+commands:
+   cw:
+      usage: /<command>
+      description: CrystalWars Main Command
+      aliases: [crystal]
+   team:
+      usage: /<command>
+      description: Queue for a team
+   kit:
+      usage: /<command>
+      descriptione: Choose a kit

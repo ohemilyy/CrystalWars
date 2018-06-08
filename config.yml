@@ -1,0 +1,117 @@
+Prefix: '&5&l(&dCrystal&5&l)&7'
+HelpLength: 10
+BeginningTimer: 7
+DefaultCountdown: 20
+MaxCrystalHealth: 100
+HealthBarLength: 20
+RespawnTime: 5
+DetailedLogs: false
+OreRespawn: #In seconds
+  Min: 30
+  Max: 60
+#Enable this to disguise the /cw command to players without permission.
+FakeInvalidCommand: false
+ChatFormat:
+  Enabled: true
+  Format: '%teamColor%%player%&r %message%'
+Status: #Statuses will also appear next to player usernames
+  CrystalAlive: "\u2713"
+  CrystalDead: '%amo%'
+  Dead: "\u2717"
+Kits: #Permission for kits: cw.kit.[kitName]
+  Archer:
+    sword:
+      Icon: WOOD_SWORD
+      Unbreakable: true
+    bow:
+      Icon: BOW
+      Unbreakable: true
+    receive:
+      arrow: #Players with kit archer will receive 1 arrow every 7 seconds, max 5
+        Icon: ARROW
+        Name: '&eArcher Arrow'
+        Rate: 7
+        Max: 5
+    attributes:
+      poweredBow: 1000 #Archers can charge a bow for 1 second, the arrow will break wool
+  Fighter:
+    sword:
+      Icon: STONE_SWORD
+      Unbreakable: true
+    attributes:
+      damage: 4 #Fighters will deal 4 more damage points
+  Builder:
+    sword:
+      Icon: WOOD_SWORD
+      Unbreakable: true
+    receive:
+      wool:
+        Icon: WOOL
+        Name: '&eBuilder Block'
+        SetDataTo: true
+        Rate: 3
+        Max: 32
+  Ninja:
+    receive:
+      ball:
+        Icon: SNOW_BALL
+        Name: '&dNinja Star'
+        Rate: 8
+        Max: 3
+    attributes:
+      doubleJump: 30 #Ninjas will be able to use double jump every 30 seconds
+      fallDamage: false #Ninjas will also not take any fall damage
+BreakableBlocks:
+  default: #Blocks that can be broken in any world unless a manual list is set
+  - 'WOOL'
+  - 'LONG_GRASS'
+  - 'STAINED_GLASS'
+  - 'DIAMOND_ORE'
+  - 'COAL_ORE'
+  - 'REDSTONE_ORE'
+  - 'QUARTZ_ORE'
+  - 'LAPIS_ORE'
+  - 'GOLD_ORE'
+  - 'TNT'
+  - 'OBSIDIAN'
+  #game0: #in game0, only Netherrack would be breakable
+   #- NETHERRACK
+Scoreboard:
+  ActionTimeLeft: '&lGame Start [%progressBar%&r&l] &a%time%'
+  Title:
+    InGame: '&d&lCRYSTALWARS'
+    Lobby: '&d&lWaiting for players...'
+    Countdown: '&d&lStarting in &b&l%startTime%'
+  Lobby:
+  - '&b&lServer'
+  - '&d%world%'
+  - ''
+  - '&b&lPlayers'
+  - '&d%players%/%maxSize%'
+  - ''
+  - '&b&lTeam'
+  - '%teamColor%%teamName%'
+  - ''
+  - '&b&lKit'
+  - '&d%kit%'
+  #set separate scoreboards for ingame per world here
+  default:
+  - '&6&lAlive Teams'
+  - '&6%alivePlayers%'
+  - ''
+  - '%team_red% %red_Status%'
+  - '%team_blue% %blue_Status%'
+  - '%team_yellow% %yellow_Status%'
+  - '%team_green% %green_Status%'
+  - ''
+  - '&c&lPlaytime'
+  - '&e%time%'
+  #game0:
+  #- '&6&lAlive Teams'
+  #- '&6%alivePlayers%'
+  #- ''
+  #- '%team_red%: %red_Status%'
+  #- '%team_blue%: %blue_Status%'
+  #- ''
+  #- '&c&lPlaytime'
+  #- '&e%time%'
