@@ -38,7 +38,6 @@ public class TeamCommand implements CommandExecutor, TabCompleter {
 			MSG.sendHelp(sender, 0, "team");
 			return true;
 		}
-
 		if (gManager.getTeams(player.getWorld()) == null || (gManager.getTeams(player.getWorld()) != null
 				&& !gManager.getTeams(player.getWorld()).contains(args[0]))) {
 			MSG.tell(sender, MSG.getString("Invalid.Team", "Invalid team name"));

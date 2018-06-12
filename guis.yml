@@ -1,4 +1,4 @@
-coalShop:
+coalShop: #Do NOT change this id
   Size: 27
   Title: 'Coal Shop'
   wool:
@@ -12,11 +12,11 @@ coalShop:
     SetDataTo: true
     Amount: 16
     Cost:
-      COAL: 6
+      COAL: 7
   bow:
     Icon: BOW
     Cost:
-      COAL: 20
+      COAL: 12
   snowball:
     Icon: SNOW_BALL
     Cost:
@@ -25,97 +25,99 @@ coalShop:
     Icon: ARROW
     Amount: 3
     Cost:
-      COAL: 5
+      COAL: 6
   stonesword:
     Icon: STONE_SWORD
     Unbreakable: true
-    AllowSamePurchase: false #Should a player be able to buy this once they have it?
+    #Should a player be able to buy this once they have it?
+    AllowSamePurchase: false 
     Cost:
       COAL: 8
   ironhelmet:
     Icon: IRON_HELMET
     AllowSamePurchase: false
     Cost:
-      COAL: 4
+      COAL: 5
   ironchest:
     Icon: IRON_CHESTPLATE
     AllowSamePurchase: false
     Cost:
-      COAL: 10
+      COAL: 12
   ironlegs:
     Icon: IRON_LEGGINGS
     AllowSamePurchase: false
     Cost:
-      COAL: 8
+      COAL: 10
   ironboots:
     Icon: IRON_BOOTS
     AllowSamePurchase: false
     Cost:
-      COAL: 4
+      COAL: 5
   stonepick:
     Icon: IRON_PICKAXE
     AllowSamePurchase: false
     Cost:
-      COAL: 8
+      COAL: 6
   rod:
     Icon: FISHING_ROD
     Cost:
-      COAL: 9
+      COAL: 8
   feather:
     Icon: FEATHER
     Name: '&d&lLeap Feather'
     Cost:
-      COAL: 6
+      COAL: 8
   tnt:
     Icon: TNT
     Cost:
-      COAL: 6
+      COAL: 14
   flintsteel:
     Icon: FLINT_AND_STEEL
     Cost:
-      COAL: 4
+      COAL: 6
   quartz:
     Icon: QUARTZ
     Cost:
       COAL: 5
-endShop:
+endShop: #Again, DO NOT change this id
   Size: 27
   Title: 'End Shop'
   diamondhelmet:
     Icon: DIAMOND_HELMET
     AllowSamePurchase: false
     Cost:
-      QUARTZ: 4
+      QUARTZ: 3
   diamondchest:
     Icon: DIAMOND_CHESTPLATE
     AllowSamePurchase: false
     Cost:
-      QUARTZ: 12
+      DIAMOND: 12
   diamondlegs:
     Icon: DIAMOND_LEGGINGS
     AllowSamePurchase: false
     Cost:
       QUARTZ: 10
+      DIAMOND: 8
   diamondboots:
     Icon: DIAMOND_BOOTS
     AllowSamePurchase: false
     Cost:
-      QUARTZ: 4
+      QUARTZ: 3
   diamondpickaxe:
     Icon: DIAMOND_PICKAXE
     AllowSamePurchase: false
     Cost:
-      QUARTZ: 7
+      QUARTZ: 8
   obsidian:
     Icon: OBSIDIAN
     Cost:
-      QUARTZ: 2
+      QUARTZ: 3
   diamondsword:
     Icon: DIAMOND_SWORD
     Unbreakable: true
     AllowSamePurchase: false
     Cost:
-      QUARTZ: 7
+      QUARTZ: 6
   epearl:
     Icon: ENDER_PEARL
     Cost:
@@ -124,17 +126,17 @@ endShop:
     Icon: FEATHER
     Name: '&d&lSuper Leap'
     Cost:
-      QUARTZ: 3
+      QUARTZ: 4
     Enchantments:
       PROTECTION_ENVIRONMENTAL:
         Level: 1
         Visible: false
-  saveInv:
+  saveInv: #In order for it this work, it must be a BLAZE_ROD
     Icon: BLAZE_ROD
     Name: '&6&lInventory Saver'
     AllowSamePurchase: false
     Cost:
-      QUARTZ: 10
+      QUARTZ: 20
     Lore:
     - 'If you die while your crystal is alive'
     - 'you will keep your items'
@@ -142,7 +144,7 @@ endShop:
     Icon: GOLDEN_APPLE
     Data: 1
     Cost:
-      QUARTZ: 5
+      QUARTZ: 6
       COAL: 20
 teamShop: #Rates are per tick (20 ticks/second)
   Size: 27
@@ -178,7 +180,8 @@ teamShop: #Rates are per tick (20 ticks/second)
         Amount: 1
         Rate: 100
     Cost:
-      QUARTZ: 32
+      QUARTZ: 14
+      COAL: 30
   protection_I:
     Icon: DIAMOND_CHESTPLATE
     Lore:
@@ -196,6 +199,7 @@ teamShop: #Rates are per tick (20 ticks/second)
     Icon: DIAMOND_SWORD
     Lore:
     - 'Everyone on your team will receive Sharpness I'
+    AllowSamePurchase: false
     Enchantments:
       DAMAGE_ALL:
         Level: 1
@@ -204,12 +208,26 @@ teamShop: #Rates are per tick (20 ticks/second)
       DIAMOND: 8
     AddEnchantToTeam:
       DAMAGE_ALL: 1
+  protection_II:
+    Icon: DIAMOND_CHESTPLATE
+    Lore:
+    - 'Everyone on your team will receive Protection II'
+    AllowSamePurchase: false
+    Enchantments:
+      PROTECTION_ENVIRONMENTAL:
+        Level: 2
+        Visible: false
+    Cost:
+      DIAMOND: 16
+    AddEnchantToTeam:
+      PROTECTION_ENVIRONMENTAL: 2
 kitMenu: #Customize kits in config.yml
   Size: 27
   Title: 'Kit Menu'
   Archer:
     Icon: BOW
     Name: '&e&lArcher Kit'
+    Permission: crystal.kit.archer
     Lore:
     - ''
     - '&7Shoot other players, or even blocks!'
@@ -218,6 +236,7 @@ kitMenu: #Customize kits in config.yml
   Fighter:
     Icon: STONE_SWORD
     Name: '&e&lFighter Kit'
+    Permission: crystal.kit.fighter
     Lore:
     - ''
     - '&7Go all out offense, dealing extra damage per hit'
@@ -226,18 +245,20 @@ kitMenu: #Customize kits in config.yml
   Builder:
     Icon: WOOL
     Name: '&e&lBuilder Kit'
+    Permission: crystal.kit.builder
     Lore:
     - ''
     - '&7Quickly build up your defenses around the crystal'
-    - '&7Receives: Wood Sword, Wool per 3 seconds (max 16)'
+    - '&7Receives: Wood Sword, Wool per 2 seconds (max 32)'
     - '&7Regular wool is counted separately from wool kit'
   Ninja:
     Icon: SNOW_BALL
     Name: '&d&lNinja Kit'
+    Permission: crystal.kit.ninja
     Lore:
     - ''
     - '&7Be quick and nimble, double jumping to places'
-    - '&7Receives: 1 Snowball every 8 seconds, (Max 3)'
+    - '&7Receives: 1 Snowball every 5 seconds, (Max 2)'
     - '&7Double Jump (Cooldown: 30 seconds)'
 gameSelectorItem:
   Icon: COMPASS
@@ -253,3 +274,43 @@ gameSelectionGui:
     InGame: '&7Status: &b&lInGame &b(%players%)'
     Countdown: '&a&lStarting in %time%'
     Waiting: '&6&lWaiting for Players &6(%players%/%max%)'
+statsGui: #Use these stats for leaderboards (eg: /cw set leaderboard wins)
+  Title: '&d&lStats - &9&l%player%'
+  Size: 27
+  Games:
+    Icon: WOOL
+    Slot: 10
+    Name: '&a&lGames'
+    Lore:
+    - ''
+    - '&dWins: &b%wins%'
+    - '&dLosses: &b%losses%'
+    - '&dQuits: &b%quits%'
+    - '&dTime: &b%time%'
+    - '&dWin Ratio: &b%winRatio%'
+  PVP:
+    Slot: 13
+    Icon: DIAMOND_SWORD
+    Name: '&c&lPVP'
+    Lore:
+    - ''
+    - '&dKills: &b%kills%'
+    - '&dDeaths: &b%deaths%'
+    - '&dFinal Kills: &b%finalDeaths%'
+    - '&dFinal Deaths: &b%finalDeaths%'
+    - '&dKDR: &b%kdr% &dFKDR: &b%fkdr%'
+    - '&dDamage Dealt: &b%dmgDealt%'
+    - '&dDamage Received: &b%dmgReceived%'
+  Misc:
+    Slot: 16
+    Icon: QUARTZ
+    Name: '&d&lMiscellaneous'
+    Lore:
+    - ''
+    - '&dBlocks Broken: &b%blocksBroken%'
+    - '&dPurchases: &b%purchases%'
+    - '&dCrystals Destroyed: &b%crystalsDestroyed%'
+  BACKGROUND_ITEM:
+    Icon: STAINED_GLASS_PANE
+    Data: 7
+    Name: ' '

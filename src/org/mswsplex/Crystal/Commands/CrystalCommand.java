@@ -40,7 +40,7 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 	GameManager gManager = new GameManager();
 	FileConfiguration data = Main.plugin.data;
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "deprecation" })
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		if (!sender.hasPermission("crystal.command")) {
 			if (Main.plugin.config.getBoolean("FakeInvalidCommand")) {
@@ -57,6 +57,7 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 		if (((args.length > 0 && !args[0].matches("(?i)(reload|reset|stop)"))) && !isPlayer(sender))
 			return true;
 		Player player = null;
+		OfflinePlayer target;
 		String worldName = null;
 		if (sender instanceof Player) {
 			player = (Player) sender;
@@ -70,7 +71,7 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 		case "cw":
 			if (sender instanceof Player)
 				pManager.setInfo(player, "prefix", "/" + label);
-			if (args[0].matches("(?i)(create|delete|set)")) {
+			if (args[0].matches("(?i)(create|delete|set|resetstats)")) {
 				if (args.length == 1) {
 					MSG.sendHelp(sender, 0, args[0]);
 					return true;
@@ -83,6 +84,9 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 				}
 			}
 			switch (args[0].toLowerCase()) {
+			case "refresh":
+				gManager.refreshLeaderboards(player.getWorld());
+				break;
 			case "win": // Beta Testing Reasons
 				gManager.winGame(player.getWorld());
 				break;
@@ -94,6 +98,25 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 				MSG.tell(sender, MSG.getString("Game.Loading", "Resetting %world%...").replace("%world%", worldName));
 				gManager.reloadWorld(player.getWorld());
 				MSG.tell(sender, MSG.getString("Game.Loaded", "world loaded"));
+				break;
+			case "resetstats":
+				target = Bukkit.getPlayer(args[1]);
+				if (target == null)
+					target = Bukkit.getOfflinePlayer(args[1]);
+				for (String res : pManager.getStats(target)) {
+					pManager.removeStat(player, res);
+				}
+				MSG.tell(sender,
+						MSG.getString("Stats.Reset", "reset %player%'s stats").replace("%player%", target.getName()));
+				break;
+			case "stats":
+				target = player;
+				if (args.length > 1 && player.hasPermission("crystal.stats.other")) {
+					target = Bukkit.getPlayer(args[1]);
+					if (target == null)
+						target = Bukkit.getOfflinePlayer(args[1]);
+				}
+				player.openInventory(pManager.getGui(target, "statsGui"));
 				break;
 			case "validate":
 			case "checklist":
@@ -111,8 +134,6 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 					MSG.tell(player, MSG.getString("Checklist.Teams", "No teams or not enough teams set"));
 					fail++;
 				}
-				// ShopNull: '%prefix% %teamColor%%teamName%&7''s %shop% is not set.'
-
 				if (teams != null) {
 					for (String team : teams) {
 						List<Location> usedLocations = new ArrayList<Location>();
@@ -176,23 +197,23 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 					break;
 				}
 				if (gManager.getTeams(player.getWorld()).contains(args[1])) {
-					for (Player target : gManager.getTeamMembers(player.getWorld(), args[1])) {
-						if (target.getWorld() != player.getWorld())
+					for (Player rTarget : gManager.getTeamMembers(player.getWorld(), args[1])) {
+						if (rTarget.getWorld() != player.getWorld())
 							continue;
 						data.set("Games." + player.getWorld().getName() + ".teams." + args[1] + ".members."
-								+ target.getName() + ".alive", true);
-						pManager.spawnPlayer(target);
+								+ rTarget.getName() + ".alive", true);
+						pManager.spawnPlayer(rTarget);
 						return true;
 					}
 				}
-				Player target = Bukkit.getPlayer(args[1]);
-				if (target == null || (target != null && !player.getWorld().getPlayers().contains(target))) {
+				Player rTarget = Bukkit.getPlayer(args[1]);
+				if (rTarget == null || (rTarget != null && !player.getWorld().getPlayers().contains(rTarget))) {
 					MSG.tell(sender, MSG.getString("Invalid.Player", "Invalid Player"));
 					break;
 				}
-				data.set("Games." + player.getWorld().getName() + ".teams." + pManager.getTeam(target) + ".members."
-						+ target.getName() + ".alive", true);
-				pManager.spawnPlayer(target);
+				data.set("Games." + player.getWorld().getName() + ".teams." + pManager.getTeam(rTarget) + ".members."
+						+ rTarget.getName() + ".alive", true);
+				pManager.spawnPlayer(rTarget);
 				break;
 			case "help": // Sends detailed help messages
 				if (args.length == 1) {
@@ -379,16 +400,52 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 					MSG.tell(sender, MSG.getString("Deleted.Spawn", "Deleted spawn"));
 					data.set("Games." + worldName + ".teams." + args[2] + ".spawnPoint" + args[3], null);
 					break;
+				case "leaderboard":
+					String closest = gManager.getClosestLeaderboard(player.getLocation());
+					if (closest.equals("")) {
+						MSG.tell(sender, MSG.getString("Invalid.Location", "There aren't any leaderboards nearby."));
+						break;
+					}
+					MSG.tell(sender, MSG.getString("Leaderboards.Deleted", "deleted %stat% leaderboard")
+							.replace("%stat%", MSG.camelCase(closest)));
+					Main.plugin.data.set("Leaderboards." + worldName + "." + closest, null);
+					gManager.refreshLeaderboards(player.getWorld());
+					break;
 				}
 				break;
 			case "set": // Set spawns, shop locations, etc.
 				if (args.length == 1) {
 					MSG.sendHelp(sender, 0, args[0]);
 					break;
+				} else {
+					if (!args[1].matches("(?i)(stat|leaderboard)") && !gameExists(player))
+						break;
 				}
-				if (!gameExists(player))
-					break;
 				switch (args[1].toLowerCase()) {
+				case "stat":
+				case "stats":
+					if (args.length < 5) {
+						MSG.tell(sender, MSG.getString("Missing.Stat", "specify a stat"));
+						break;
+					}
+					target = Bukkit.getPlayer(args[2]);
+					if (target == null) {
+						target = Bukkit.getOfflinePlayer(args[2]);
+					}
+					pManager.setStat(target, args[3], Double.parseDouble(args[4]));
+					MSG.tell(sender,
+							MSG.getString("Stats.Set", "set %player%'s %stat% stat to %amo%")
+									.replace("%player%", target.getName()).replace("%stat%", args[3])
+									.replace("%amo%", Double.parseDouble(args[4]) + ""));
+					break;
+				case "leaderboard":
+					if (args.length < 3) {
+						MSG.tell(sender, MSG.getString("Missing.Stat", "You must specify a stat"));
+						break;
+					}
+					Main.plugin.saveLocation("Leaderboards." + worldName + "." + args[2], player.getLocation());
+					gManager.refreshLeaderboards(player.getWorld());
+					break;
 				case "builders":
 					if (!gameExists(player))
 						break;
@@ -902,8 +959,8 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 			return result;
 		if (args.length == 1) {
 			for (String res : new String[] { "create", "delete", "set", "start", "stop", "help", "list", "reload",
-					"reset" }) {
-				if (sender.hasPermission("crystal." + res) && res.startsWith(args[0].toLowerCase()))
+					"reset", "check", "stats", "resetStats" }) {
+				if (sender.hasPermission("crystal." + res) && res.toLowerCase().startsWith(args[0].toLowerCase()))
 					result.add(res);
 			}
 		}
@@ -919,7 +976,7 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 						}
 				}
 			}
-			if (args[1].equalsIgnoreCase("kit") && sender instanceof Player) {
+			if (args[1].matches("(?i)(kit|stat)") && sender instanceof Player) {
 				Player player = (Player) sender;
 				for (Player target : player.getWorld().getPlayers()) {
 					if (target.getName().toLowerCase().startsWith(args[args.length - 1].toLowerCase())) {
@@ -936,14 +993,14 @@ public class CrystalCommand implements CommandExecutor, TabCompleter {
 				switch (args[0].toLowerCase()) {
 				case "create":
 				case "delete":
-					for (String res : new String[] { "game", "team", "spawn" })
+					for (String res : new String[] { "game", "team", "spawn", "leaderboard" })
 						if (res.startsWith(args[1].toLowerCase()))
 							result.add(res);
 					break;
 				case "set":
 					for (String res : new String[] { "spawn", "maxTeamSize", "maxSize", "startAt", "resourceSpawn",
 							"coalShop", "endShop", "teamShop", "endLocation", "crystal", "crystalHealth", "specSpawn",
-							"time", "kit", "builders" })
+							"time", "kit", "builders", "leaderboard", "stat" })
 						if (res.toLowerCase().startsWith(args[1].toLowerCase()))
 							result.add(res);
 					break;

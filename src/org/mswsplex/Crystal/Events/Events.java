@@ -12,7 +12,9 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.Entity;
@@ -26,6 +28,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
@@ -38,6 +41,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -115,6 +119,17 @@ public class Events implements Listener {
 		}
 	}
 
+	@EventHandler
+	public void onArmorStandChange(PlayerInteractAtEntityEvent event) {
+		if (event.getRightClicked() == null)
+			return;
+		Entity ent = event.getRightClicked();
+		if (!(ent instanceof ArmorStand))
+			return;
+		if (ent.hasMetadata("leaderboard"))
+			event.setCancelled(true);
+	}
+
 	@SuppressWarnings({ "unchecked", "deprecation" })
 	@EventHandler
 	public void onEntityDamaged(EntityDamageByEntityEvent event) {
@@ -133,7 +148,8 @@ public class Events implements Listener {
 			String kit = pManager.getKit(player);
 			if (kits.contains(kit)) {
 				if (kits.contains(kit + ".attributes.damage")) {
-					dmg = dmg + kits.getDouble("Kits." + kit + ".attributes.damage");
+					dmg = dmg + kits.getDouble(kit + ".attributes.damage");
+					event.setDamage(dmg);
 				}
 			}
 			if (pManager.isAlive(player) && !pManager.isRespawning(player))
@@ -163,7 +179,7 @@ public class Events implements Listener {
 			return;
 		if (damager instanceof Projectile) {
 			if (damager instanceof Snowball)
-				dmg += 5;
+				dmg += 1;
 			Projectile proj = (Projectile) damager;
 			if (proj.getShooter() == null)
 				return;
@@ -201,9 +217,9 @@ public class Events implements Listener {
 			}
 			if (!team.equals("")) {
 				if (damager instanceof Projectile) {
-					dmg = dmg * 2;
-				} else if (damager instanceof TNTPrimed) {
 					dmg = dmg * 4;
+				} else if (damager instanceof TNTPrimed) {
+					dmg = dmg * 2;
 				} else {
 					dmg = dmg / 3;
 				}
@@ -211,12 +227,20 @@ public class Events implements Listener {
 					MSG.nonSpam(harmer, MSG.getString("Invalid.Hit", "That's your own crystal!"));
 					return;
 				}
-				String hpPath = "Games." + world.getName() + ".teams." + team + ".crystalHealth";
-				Main.plugin.data.set(hpPath, Main.plugin.data.getDouble(hpPath) - dmg);
 				if (entity instanceof EnderCrystal) {
-					world.playSound(entity.getLocation(), Sound.SILVERFISH_HIT, 1, 2);
-					if (harmer != null)
-						harmer.playSound(harmer.getLocation(), Sound.BLAZE_HIT, 2, 2);
+					String hpPath = "Games." + world.getName() + ".teams." + team + ".crystalHealth";
+					Main.plugin.data.set(hpPath, Main.plugin.data.getDouble(hpPath) - dmg);
+					world.playSound(entity.getLocation(),
+							Sound.valueOf(Main.plugin.config.getString("Sounds.CrystalHit")), 1, 2);
+					if (harmer != null) {
+						if (!(event.getDamager() instanceof Projectile)) {
+							Vector vel = harmer.getLocation().toVector().subtract(entity.getLocation().toVector())
+									.normalize();
+							harmer.setVelocity(vel.multiply(dmg / 7));
+						}
+						harmer.playSound(harmer.getLocation(),
+								Sound.valueOf(Main.plugin.config.getString("Sounds.PlayerHitCrystal")), 2, 2);
+					}
 					if (Main.plugin.data.getDouble(hpPath) <= 0) {
 						MSG.tell(world,
 								MSG.getString("Game.CrystalDestroyed.Message", "%player% destroyed %team%'s crystal")
@@ -225,6 +249,7 @@ public class Events implements Listener {
 														: gManager.getColor(world, pManager.getTeam((Player) damager))
 																+ damager.getName())
 										.replace("%team%", gManager.getColor(world, team) + MSG.camelCase(team)));
+						pManager.increment(harmer, "crystalsDestroyed", 1);
 						for (Player target : gManager.getTeamMembers(world, team)) {
 							target.sendTitle(
 									MSG.color(MSG.getString("Game.CrystalDestroyed.Top", "&c&lCRYSTAL DESTROYED")),
@@ -242,6 +267,8 @@ public class Events implements Listener {
 		if (!(entity instanceof Player) || harmer == null)
 			return;
 		Player damaged = (Player) entity;
+		pManager.increment(damaged, "dmgReceived", dmg);
+		pManager.increment(harmer, "dmgDealt", dmg);
 		if (pManager.getTeam(harmer).equals(pManager.getTeam(damaged)))
 			event.setCancelled(true);
 		event.setDamage(dmg);
@@ -252,48 +279,39 @@ public class Events implements Listener {
 		Entity entity = event.getEntity();
 		if (entity instanceof Arrow && Main.plugin.data
 				.contains("Games." + entity.getWorld().getName() + ".arrows." + entity.getUniqueId())) {
-
 			double pow = Main.plugin.data
 					.getDouble("Games." + entity.getWorld().getName() + ".arrows." + entity.getUniqueId());
 			if (pow > Main.plugin.config.getDouble("Kits."
 					+ pManager.getKit(((Player) ((Projectile) entity).getShooter())) + ".attributes.poweredBow")) {
 				// Code provided by AgainstTheNight
 				// https://www.spigotmc.org/threads/get-what-block-an-arrow-hits.322496/#post-3025696
-				// please use lambda expressions
 				Bukkit.getScheduler().scheduleSyncDelayedTask(Main.plugin, () -> {
 					try {
-						// net.minecraft.server.v1_12_R1.EntityArrow entityArrow = ((CraftArrow)
-						// entity.getEntity()).getHandle();
 						Object entityArrow = ReflectionHandler
 								.getClass(ReflectionHandler.ReflectionClassType.OBC, "entity.CraftArrow")
 								.getMethod("getHandle").invoke(entity);
-						// Field fieldX =
-						// net.minecraft.server.v1_12_R1.EntityArrow.class.getDeclaredField("d");
 						Field fieldX = ReflectionHandler
 								.getClass(ReflectionHandler.ReflectionClassType.NMS, "EntityArrow")
 								.getDeclaredField("d");
-						// Field fieldY =
-						// net.minecraft.server.v1_12_R1.EntityArrow.class.getDeclaredField("e");
 						Field fieldY = ReflectionHandler
 								.getClass(ReflectionHandler.ReflectionClassType.NMS, "EntityArrow")
 								.getDeclaredField("e");
-						// Field fieldZ =
-						// net.minecraft.server.v1_12_R1.EntityArrow.class.getDeclaredField("f");
 						Field fieldZ = ReflectionHandler
 								.getClass(ReflectionHandler.ReflectionClassType.NMS, "EntityArrow")
 								.getDeclaredField("f");
-
 						fieldX.setAccessible(true);
 						fieldY.setAccessible(true);
 						fieldZ.setAccessible(true);
-
 						int x = fieldX.getInt(entityArrow);
 						int y = fieldY.getInt(entityArrow);
 						int z = fieldZ.getInt(entityArrow);
-
 						if (y != -1) {
 							Block block = entity.getWorld().getBlockAt(x, y, z);
-							if (block.getType() == Material.WOOL)
+							List<String> mats = Main.plugin.config
+									.getStringList("ArrowsBreak." + entity.getWorld().getName());
+							if (mats.isEmpty())
+								mats = Main.plugin.config.getStringList("ArrowsBreak.default");
+							if (mats.contains(block.getType() + ""))
 								block.setType(Material.AIR);
 						}
 					} catch (Exception e) {
@@ -324,6 +342,30 @@ public class Events implements Listener {
 	}
 
 	@EventHandler
+	public void onSignChange(SignChangeEvent event) {
+		Player player = event.getPlayer();
+		if (event.getLines() != null && event.getLine(0).contains("Crystal")) {
+			if (!player.hasPermission("crystal.sign.create")) {
+				MSG.noPerm(player);
+				event.getBlock().breakNaturally();
+				return;
+			}
+			if (Main.plugin.data.contains("Games." + event.getLine(1))) {
+				event.setLine(0, MSG.color(MSG.prefix()));
+				event.setLine(2, MSG.color(gManager.getNamedStatus(Bukkit.getWorld(event.getLine(1)))));
+				MSG.tell(player, MSG.getString("Sign.Registered", "sign registered"));
+				int id = 0;
+				while (Main.plugin.data.contains("SignLocation." + event.getLine(1) + "." + id))
+					id++;
+				Main.plugin.saveLocation("SignLocation." + event.getLine(1) + "." + id, event.getBlock().getLocation());
+			} else {
+				MSG.tell(player, MSG.getString("Sign.NotFound", "game not found"));
+				event.getBlock().setType(Material.AIR);
+			}
+		}
+	}
+
+	@EventHandler
 	public void onInteract(PlayerInteractEvent event) {
 		Player player = event.getPlayer();
 		if (event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.CHEST) {
@@ -336,6 +378,20 @@ public class Events implements Listener {
 									.replace("%teamColor%", gManager.getColor(player.getWorld(), closest))
 									.replace("%teamName%", MSG.camelCase(closest)));
 					event.setCancelled(true);
+				}
+			}
+		}
+		if (event.getClickedBlock() != null && (event.getClickedBlock().getType() == Material.WALL_SIGN
+				|| event.getClickedBlock().getType() == Material.SIGN_POST)) {
+			if (!(player.getGameMode() == GameMode.CREATIVE && event.getAction() == Action.LEFT_CLICK_BLOCK)) {
+				Sign sign = (Sign) event.getClickedBlock().getState();
+				if (sign.getLines().length > 0) {
+					if (ChatColor.stripColor(sign.getLine(0)).equals(ChatColor.stripColor(MSG.color(MSG.prefix())))) {
+						World world = Bukkit.getWorld(sign.getLine(1));
+						if (world != player.getWorld())
+							player.teleport(world.getSpawnLocation());
+						gManager.refreshSigns(player.getWorld());
+					}
 				}
 			}
 		}
@@ -364,7 +420,8 @@ public class Events implements Listener {
 			dir.multiply(vel);
 			dir.setY(dir.getY());
 			player.setVelocity(dir);
-			player.getWorld().playSound(player.getLocation(), Sound.GHAST_FIREBALL, 2, 2);
+			player.getWorld().playSound(player.getLocation(),
+					Sound.valueOf(Main.plugin.config.getString("Sounds.DoubleJump")), 2, 2);
 			ItemStack tmp = hand;
 			if (hand.getAmount() == 1) {
 				tmp.setType(Material.AIR);
@@ -381,17 +438,39 @@ public class Events implements Listener {
 	public void onBreak(BlockBreakEvent event) {
 		Player player = event.getPlayer();
 		World world = player.getWorld();
+		// Delete sign locations if it's a sign
+		if (event.getBlock() != null && (event.getBlock().getType() == Material.WALL_SIGN
+				|| event.getBlock().getType() == Material.SIGN_POST)) {
+			if (!player.hasPermission("crystal.sign.delete")) {
+				MSG.noPerm(player);
+				event.setCancelled(true);
+				return;
+			}
+			Sign sign = (Sign) event.getBlock().getState();
+			ConfigurationSection signs = Main.plugin.data.getConfigurationSection("SignLocation." + sign.getLine(1));
+			if (signs != null && sign.getLine(1) != null) {
+				for (String res : signs.getKeys(false)) {
+					if (res == null)
+						continue;
+					if (Main.plugin.getLocation("SignLocation." + sign.getLine(1) + "." + res)
+							.equals(sign.getLocation())) {
+						Main.plugin.data.set("SignLocation." + sign.getLine(1) + "." + res, null);
+						MSG.tell(player, MSG.getString("Sign.Deleted", "sign removed"));
+						break;
+					}
+				}
+			}
+		}
 		if (!Main.plugin.data.contains("Games." + world.getName()) || player.getGameMode() == GameMode.CREATIVE)
 			return;
-		if ((gManager.getStatus(world).equals("lobby") || !pManager.isAlive(player) || pManager.isRespawning(player))
-				&& player.getGameMode() != GameMode.CREATIVE) {
+		if ((gManager.getStatus(world).equals("lobby") || !pManager.isAlive(player) || pManager.isRespawning(player))) {
 			event.setCancelled(true);
 			return;
 		}
-		int pos = 0;
-		while (Main.plugin.data.contains("Games." + world.getName() + ".oresBroken." + pos))
-			pos++;
 		if (event.getBlock().getType().name().toLowerCase().contains("ore")) {
+			int pos = 0;
+			while (Main.plugin.data.contains("Games." + world.getName() + ".oresBroken." + pos))
+				pos++;
 			String path = "Games." + world.getName() + ".oresBroken." + pos;
 			Main.plugin.saveLocation(path, event.getBlock().getLocation());
 			Main.plugin.data.set(path + ".respawnTime",
@@ -407,8 +486,11 @@ public class Events implements Listener {
 		} else {
 			allowedMats = (List<String>) Main.plugin.config.getList("BreakableBlocks.default");
 		}
-		if (!allowedMats.contains(event.getBlock().getType() + ""))
+		if (!allowedMats.contains(event.getBlock().getType() + "")) {
 			event.setCancelled(true);
+		} else {
+			pManager.increment(player, "blocksBroken", 1);
+		}
 	}
 
 	@EventHandler
@@ -474,7 +556,8 @@ public class Events implements Listener {
 		dir.multiply(1.5);
 		dir.setY(dir.getY());
 		player.setVelocity(dir);
-		player.getWorld().playSound(player.getLocation(), Sound.GHAST_FIREBALL, 2, 2);
+		player.getWorld().playSound(player.getLocation(),
+				Sound.valueOf(Main.plugin.config.getString("Sounds.DoubleJump")), 2, 2);
 		pManager.setInfo(player, "lastDoubleJump", (double) System.currentTimeMillis());
 		pManager.setInfo(player, "lastFlapped", (double) System.currentTimeMillis());
 		event.setCancelled(true);
@@ -499,10 +582,16 @@ public class Events implements Listener {
 	@EventHandler
 	public void onPickup(PlayerPickupItemEvent event) {
 		Player player = (Player) event.getPlayer();
+		if (event.getItem() == null)
+			return;
+		if (!Main.plugin.data.contains("Games." + player.getWorld().getName()))
+			return;
 		if (!pManager.isAlive(player) || pManager.isRespawning(player)) {
 			event.setCancelled(true);
 			return;
 		}
+		pManager.increment(player, event.getItem().getItemStack().getType() + "pickedUp",
+				event.getItem().getItemStack().getAmount());
 	}
 
 	@EventHandler
@@ -571,6 +660,7 @@ public class Events implements Listener {
 		Player player = event.getPlayer();
 		World world = player.getWorld();
 		String team = pManager.getTeam(player);
+		pManager.increment(player, "messagesSent", 1);
 		if (!Main.plugin.data.contains("Games." + world.getName()))
 			return;
 		for (Player p : world.getPlayers())
@@ -583,6 +673,13 @@ public class Events implements Listener {
 					.replace("%player%", player.getDisplayName()).replace("%message%", event.getMessage()));
 	}
 
+	/**
+	 * Add a new player to the world (will put them in specator if it's already
+	 * going)
+	 * 
+	 * @param player
+	 *            Player to add to the world
+	 */
 	public void newPlayer(Player player) {
 		World world = player.getWorld();
 		if (!Main.plugin.data.contains("Games." + world.getName()))
@@ -734,14 +831,16 @@ public class Events implements Listener {
 			}
 		}
 		if (item == null || itemId.equals("")) {
-			player.playSound(player.getLocation(), Sound.ITEM_BREAK, 1f, 1f);
+			player.playSound(player.getLocation(),
+					Sound.valueOf(Main.plugin.config.getString("Sounds.IncorrectInventory")), 1f, 1f);
 			return;
 		}
 		if (id.equals("kitMenu")) {
 			if (Main.plugin.config.contains("Kits." + itemId)) {
 				pManager.setInfo(player, "kit", itemId);
 				player.closeInventory();
-				player.playSound(player.getLocation(), Sound.LEVEL_UP, 2, 2);
+				player.playSound(player.getLocation(),
+						Sound.valueOf(Main.plugin.config.getString("Sounds.KitSelected")), 2, 2);
 				MSG.tell(player,
 						MSG.getString("Swapped.Kits", "Your kit is %kit%").replace("%kit%", MSG.camelCase(itemId)));
 			}
@@ -753,7 +852,8 @@ public class Events implements Listener {
 			if (!player.getInventory().containsAtLeast(new ItemStack(Material.valueOf(material)),
 					costs.getInt(material))) {
 				MSG.nonSpam(player, MSG.getString("Invalid.Balance", "invalid balance"));
-				player.playSound(player.getLocation(), Sound.HORSE_BREATHE, 1, 1);
+				player.playSound(player.getLocation(),
+						Sound.valueOf(Main.plugin.config.getString("Sounds.InvalidBalance")), 1, 1);
 				return;
 			}
 		}
@@ -792,8 +892,6 @@ public class Events implements Listener {
 			for (String mat : section.getConfigurationSection(itemId + ".AddResources").getKeys(false)) {
 				int amo = 0;
 				double rate = 0;
-				// String rMap = "Games." + world.getName() + ".teams." + team + ".resources";
-
 				if (Main.plugin.data.contains(rMap + "." + mat + ".amo"))
 					amo = Main.plugin.data.getInt(rMap + "." + mat + ".amo");
 				if (Main.plugin.data.contains(rMap + "." + mat + ".rate"))
@@ -849,10 +947,10 @@ public class Events implements Listener {
 				}
 			}
 		}
-
+		pManager.increment(player, "purchases", 1);
 		for (String material : costs.getKeys(false))
 			player.getInventory().removeItem(new ItemStack(Material.valueOf(material), costs.getInt(material)));
-		player.playSound(player.getLocation(), Sound.LEVEL_UP, 2, 2);
+		player.playSound(player.getLocation(), Sound.valueOf(Main.plugin.config.getString("Sounds.Purchase")), 2, 2);
 		player.getInventory().addItem(cItem);
 	}
 }

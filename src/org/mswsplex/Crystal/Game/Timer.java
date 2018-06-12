@@ -36,12 +36,17 @@ public class Timer {
 			@SuppressWarnings("unchecked")
 			public void run() {
 				for (World world : Bukkit.getWorlds()) {
+					if (timer % 5 == 0) // Update signs
+						gManager.refreshSigns(world);
+					if (timer % (Main.plugin.config.getDouble("LeaderboardRefreshRate") * 20) == 0) {
+						gManager.refreshLeaderboards(world);
+					}
 					if (!data.contains("Games." + world.getName()))
 						continue;
 					if (gManager.getStatus(world).contains("ingame")
 							&& gManager.getTeamsWithPlayers(world).size() < 2) {
-						// gManager.winGame(world);
-						// continue;
+						gManager.winGame(world);
+						continue;
 					}
 					ConfigurationSection blocks = data
 							.getConfigurationSection("Games." + world.getName() + ".oresBroken");
@@ -58,7 +63,7 @@ public class Timer {
 					if (gManager.getInfo(world, "beginTimer") != null) {
 						double raw = (double) gManager.getInfo(world, "beginTimer"); // time it will start
 						double time = System.currentTimeMillis();
-						double dur = raw - time; // milliseconds left
+						double dur = raw - time;
 						double pTime = System.currentTimeMillis() - (double) gManager.getInfo(world, "lastPling");
 						double total = Main.plugin.config.getDouble("BeginningTimer") * 1000;
 						if (dur > 0) {
@@ -67,7 +72,8 @@ public class Timer {
 									.replace("%time%", tManager.getRoundTimeMillis(dur + 1000));
 							for (Player target : world.getPlayers()) {
 								if (pTime > 1000) {
-									target.playSound(target.getLocation(), Sound.CLICK, 2, 2);
+									target.playSound(target.getLocation(),
+											Sound.valueOf(Main.plugin.config.getString("Sounds.ActionSound")), 2, 2);
 									gManager.setInfo(world, "lastPling", (double) System.currentTimeMillis());
 								}
 								ActionBar.sendHotBarMessage(target, MSG.color(msg));
@@ -75,7 +81,8 @@ public class Timer {
 						} else {
 							for (Player target : world.getPlayers()) {
 								ActionBar.sendHotBarMessage(target, "");
-								target.playSound(target.getLocation(), Sound.NOTE_PLING, 2, 2);
+								target.playSound(target.getLocation(),
+										Sound.valueOf(Main.plugin.config.getString("Sounds.ActionStart")), 2, 2);
 							}
 							gManager.setInfo(world, "beginTimer", null);
 							gManager.setInfo(world, "lastPling", null);
@@ -94,7 +101,8 @@ public class Timer {
 							double power = System.currentTimeMillis() - pManager.getDouble(player, "pulledBow"),
 									fullPower = Main.plugin.config.getDouble("Kits." + kit + ".attributes.poweredBow");
 							if (power < fullPower) {
-								player.playSound(player.getLocation(), Sound.NOTE_PLING, .2f,
+								player.playSound(player.getLocation(),
+										Sound.valueOf(Main.plugin.config.getString("Sounds.BowCharge")), .2f,
 										(float) (power / fullPower * 2));
 								ActionBar.sendHotBarMessage(player,
 										MSG.color(MSG.getString("Attributes.Bow.BowCharging", "Full Power %bar% %time%")
@@ -142,7 +150,8 @@ public class Timer {
 											continue;
 									}
 									player.getInventory().addItem(item);
-									player.playSound(player.getLocation(), Sound.ITEM_PICKUP, 1, 1);
+									player.playSound(player.getLocation(),
+											Sound.valueOf(Main.plugin.config.getString("Sounds.ItemGiven")), 1, 1);
 									pManager.setInfo(player, "lastKit" + res, (double) System.currentTimeMillis());
 								}
 							}

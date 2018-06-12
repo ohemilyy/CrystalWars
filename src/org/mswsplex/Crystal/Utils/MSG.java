@@ -79,13 +79,6 @@ public class MSG {
 		}
 	}
 
-	public void tell(String perm, String msg) {
-		for (Player target : Bukkit.getOnlinePlayers()) {
-			if (target.hasPermission(perm))
-				tell(target, msg);
-		}
-	}
-
 	public static String prefix() {
 		return Main.plugin.config.contains("Prefix") ? Main.plugin.config.getString("Prefix") : "CrystalWars:";
 	}
@@ -107,14 +100,6 @@ public class MSG {
 			prefix = "[" + Main.plugin.getDescription().getName() + "] ";
 		}
 		tell(Bukkit.getConsoleSender(), prefix + msg);
-	}
-
-	public static String TorF(Boolean bool) {
-		if (bool) {
-			return "&aTrue&r";
-		} else {
-			return "&cFalse&r";
-		}
 	}
 
 	public static void sendHelp(CommandSender sender, int page, String command) {
@@ -155,7 +140,7 @@ public class MSG {
 	}
 
 	public static String progressBar(double prog, double total, int length) {
-		return progressBar("&a▍", "&c▍", prog, total, length);
+		return progressBar("&a\u258D", "&c\u258D", prog, total, length);
 	}
 
 	public static String progressBar(String progChar, String incomplete, double prog, double total, int length) {

@@ -129,7 +129,8 @@ public class SBoard {
 							double cnt = System.currentTimeMillis() - (double) gManager.getInfo(world, "lastPling");
 							if (cnt > 1000) {
 								for (Player player : world.getPlayers())
-									player.playSound(player.getLocation(), Sound.NOTE_PLING, 2, 2);
+									player.playSound(player.getLocation(),
+											Sound.valueOf(Main.plugin.config.getString("Sounds.Countdown")), 2, 2);
 								gManager.setInfo(world, "lastPling", (double) System.currentTimeMillis());
 							}
 						}
@@ -180,6 +181,7 @@ public class SBoard {
 						: "");
 			}
 		}
+		// Parses to get team from "%team_[teamName]%"
 		while (result.contains("%team_")) {
 			int f = 0, pPos = 0;
 			for (int pos = 0; pos < result.length() - "%team_".length(); pos++) {
@@ -202,6 +204,7 @@ public class SBoard {
 			result = result.replace("%team_" + name + "%",
 					gManager.getColor(player.getWorld(), name) + "&l" + MSG.camelCase(name));
 		}
+		// Parses to get team from "%[teamName]_Status%]"
 		while (result.contains("_Status%")) {
 			int f = 0;
 			for (int pos = 0; pos < result.length() - "_Status%".length() + 1; pos++) {
@@ -224,7 +227,8 @@ public class SBoard {
 			for (int i = name.length() - 1; i >= 0; i--)
 				tmp = tmp + name.charAt(i);
 			name = tmp;
-			result = result.replace("%" + name + "_Status%", gManager.getTeamStatus(player.getWorld(), name));
+			result = result.replace("%" + name + "_Status%",
+					gManager.getColor(player.getWorld(), name) + gManager.getTeamStatus(player.getWorld(), name));
 		}
 		return MSG.color(result);
 	}

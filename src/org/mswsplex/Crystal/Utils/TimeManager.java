@@ -29,7 +29,6 @@ public class TimeManager {
 				mil = mil / length[i];
 				if (mil == 1) {
 					suff = sNames[i];
-					// suff = suff.substring(0, suff.length() - 1);
 				}
 				break;
 			}

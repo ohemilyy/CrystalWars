@@ -3,11 +3,13 @@ package org.mswsplex.Crystal.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
@@ -62,6 +64,165 @@ public class PlayerManager {
 		return Main.plugin.data.getStringList(player.getUniqueId() + "." + id);
 	}
 
+	/**
+	 * Returns a number that the player has, kills, deaths, etc. -1 if they don't
+	 * have the stat
+	 * 
+	 * @param player
+	 *            Player to get stat from
+	 * @param stat
+	 *            id of the stat to get, (kills, dmgDealt, dmgReceived, etc, see
+	 *            guis.yml for more info)
+	 * @return double of the stat, -1 if it doesn't exist
+	 */
+	public double getNumberStat(OfflinePlayer player, String stat) {
+		double result = 0;
+		try {
+			result = Main.plugin.stats.getDouble(player.getUniqueId() + "." + stat);
+		} catch (Exception e) {
+			return -1;
+		}
+		return result;
+	}
+
+	/**
+	 * Increments the player's stat by the specified amount, sets if to the amount
+	 * if they don't have the stat
+	 * 
+	 * @param player
+	 *            Player whose stat will be modified
+	 * @param stat
+	 *            Stat id to be modified
+	 * @param amo
+	 *            double amount of what to add/subtract
+	 */
+	public void increment(OfflinePlayer player, String stat, double amo) {
+		if (!Main.plugin.stats.contains(player.getUniqueId() + "." + stat)) {
+			Main.plugin.stats.set(player.getUniqueId() + "." + stat, amo);
+		} else {
+			Main.plugin.stats.set(player.getUniqueId() + "." + stat, getNumberStat(player, stat) + amo);
+		}
+	}
+
+	/**
+	 * Returns the string but with %(stat)% replace appropriately
+	 * 
+	 * @param player
+	 *            Player to replace the stats with
+	 * @param msg
+	 *            String to replace with stats
+	 * @return Returns msg but with stats replaced Eg: parseStats(offline, "test
+	 *         %kills% %deaths%"); could return "test 13 20"
+	 */
+	public String parseStats(OfflinePlayer player, String msg) {
+		String line = MSG.color(msg);
+		if (line == null || line.isEmpty()) {
+			return "";
+		}
+		for (String replace : new String[] { "blocksBroken", "wins", "losses", "plays", "quits", "kills", "finalKills",
+				"finalDeaths", "deaths", "purchases", "crystalsDestroyed", "dmgDealt", "dmgReceived" }) {
+			int stat = (int) getNumberStat(player, replace);
+			line = line.replace("%" + replace + "%", stat + "");
+		}
+		if (getNumberStat(player, "deaths") == 0) {
+			line = line.replace("%kdr%", parseDecimal(getNumberStat(player, "kills") + ""));
+		} else {
+			String kdr = (getNumberStat(player, "kills") / getNumberStat(player, "deaths") + "");
+			line = line.replace("%kdr%", parseDecimal(kdr));
+		}
+		if (getNumberStat(player, "finalDeaths") == 0) {
+			line = line.replace("%fkdr%", getNumberStat(player, "finalKills") + "");
+		} else {
+			String kdr = (getNumberStat(player, "finalKills") / getNumberStat(player, "finalDeaths") + "");
+			line = line.replace("%fkdr%", parseDecimal(kdr));
+		}
+		if (getNumberStat(player, "dmgReceived") == 0) {
+			line = line.replace("%dmgRatio%", getNumberStat(player, "dmgRatio") + "");
+		} else {
+			String kdr = (getNumberStat(player, "dmgDealt") / getNumberStat(player, "dmgReceived") + "");
+			line = line.replace("%dmgRatio%", parseDecimal(kdr));
+		}
+		if (getNumberStat(player, "losses") == 0) {
+			line = line.replace("%winRatio%", getNumberStat(player, "wins") + "");
+		} else {
+			String kdr = (getNumberStat(player, "wins") / getNumberStat(player, "losses") + "");
+			line = line.replace("%winRatio%", parseDecimal(kdr));
+		}
+		line = line.replace("%time%", new TimeManager().getTime(getNumberStat(player, "playtime"), 2));
+		return line;
+	}
+
+	public String parseDecimal(String name) {
+		if (name.contains(".")) {
+			if (name.split("\\.")[1].length() > 2) {
+				name = name.split("\\.")[0] + "."
+						+ name.split("\\.")[1].substring(0, Math.min(name.split("\\.")[1].length(), 2));
+			}
+		}
+		return name;
+	}
+
+	public void setStat(OfflinePlayer player, String stat, double amo) {
+		Main.plugin.stats.set(player.getUniqueId() + "." + stat, amo);
+	}
+
+	public void removeStat(OfflinePlayer player, String stat) {
+		Main.plugin.stats.set(player.getUniqueId() + "." + stat, null);
+	}
+
+	public List<String> getStats(OfflinePlayer player) {
+		List<String> stats = new ArrayList<String>();
+		ConfigurationSection statEntries = Main.plugin.stats.getConfigurationSection(player.getUniqueId() + "");
+		if (statEntries == null)
+			return stats;
+		statEntries.getKeys(false).forEach((stat) -> stats.add(stat));
+		return stats;
+	}
+
+	/**
+	 * Returns List of OfflinePlayers in order of highest score of the stat to
+	 * lowest (size is defined)
+	 * 
+	 * @param stat
+	 *            Stat to order players by
+	 * @param amo
+	 *            Size of the array
+	 * @return List of offlineplayers within that array, may be empty if no users
+	 *         exist
+	 */
+	public List<OfflinePlayer> getHighestRanks(String stat, int amo) {
+		List<OfflinePlayer> top = new ArrayList<OfflinePlayer>();
+		for (int i = 0; i < amo; i++) {
+			double cStat = 0.0;
+			String cPlayer = null;
+			for (String res : Main.plugin.stats.getKeys(false)) {
+				OfflinePlayer target = Bukkit.getOfflinePlayer(UUID.fromString(res));
+				if (top.contains(target))
+					continue;
+				double tmp = Main.plugin.stats.getDouble(res + "." + stat);
+				if (tmp >= cStat) {
+					cStat = tmp;
+					cPlayer = res;
+				}
+			}
+			if (cPlayer == null)
+				return top;
+			OfflinePlayer target = Bukkit.getOfflinePlayer(UUID.fromString(cPlayer));
+			if (top.contains(target))
+				return top;
+			top.add(target);
+		}
+		return top;
+	}
+
+	/**
+	 * Kills the player if they're ingame and have a team
+	 * 
+	 * @param player
+	 *            Player to kill
+	 * @param killer
+	 *            String of who killed them (Can be "Void Damage" or other)
+	 */
 	@SuppressWarnings("deprecation")
 	public void killPlayer(Player player, String killer) {
 		GameManager gManager = new GameManager();
@@ -73,6 +234,7 @@ public class PlayerManager {
 		World world = player.getWorld();
 		for (Player target : player.getWorld().getPlayers())
 			target.hidePlayer(player);
+		increment(player, "deaths", 1);
 		setInfo(player, "killer", null);
 		player.setHealth(20);
 		player.teleport(Main.plugin.getLocation("Games." + player.getWorld().getName() + ".specSpawn"));
@@ -88,6 +250,12 @@ public class PlayerManager {
 					MSG.color(MSG.getString("Game.PlayerKilled.Message", "%culprit% killed %victim%")
 							.replace("%culprit%", killer).replace("%victim%", vName))
 							.replace("%prefix%", MSG.color(MSG.prefix())));
+			increment(player, "finalDeaths", 1);
+			if (player.getKiller() != null) {
+				increment(player.getKiller(), "finalKills", 1);
+				player.getKiller().playSound(player.getLocation(),
+						Sound.valueOf(Main.plugin.config.getString("Sounds.Kill")), 2, 2);
+			}
 		} else {
 			if (player.getInventory().contains(Material.BLAZE_ROD)) {
 				player.getInventory().remove(Material.BLAZE_ROD);
@@ -105,11 +273,13 @@ public class PlayerManager {
 					MSG.getString("Game.PlayerKilled.KilledBy", "%culprit% killed %victim%")
 							.replace("%culprit%", killer).replace("%victim%", player.getName())
 							.replace("%prefix%", MSG.color(MSG.prefix())));
-			if (player.getKiller() != null)
+			if (player.getKiller() != null) {
 				MSG.tell(player.getKiller(),
 						MSG.color(MSG.getString("Game.PlayerKilled.Private", "%culprit% killed %victim%")
 								.replace("%culprit%", killer).replace("%victim%", vName))
 								.replace("%prefix%", MSG.color(MSG.prefix())));
+				increment(player.getKiller(), "kills", 1);
+			}
 		}
 		gManager.updateNames(world);
 		player.getInventory().clear();
@@ -261,21 +431,25 @@ public class PlayerManager {
 		return getString(player, "killer") == null ? "Unknown" : getString(player, "killer");
 	}
 
-	public Inventory getGui(Player player, String id) {
+	public Inventory getGui(OfflinePlayer player, String id) {
 		if (!Main.plugin.gui.contains(id))
 			return null;
 		ConfigurationSection gui = Main.plugin.gui.getConfigurationSection(id);
 		if (!gui.contains("Size") || !gui.contains("Title"))
 			return null;
-		Inventory inv = Bukkit.createInventory(null, gui.getInt("Size"), gui.getString("Title"));
+		Inventory inv = Bukkit.createInventory(null, gui.getInt("Size"),
+				MSG.color(gui.getString("Title").replace("%player%", player.getName())));
 		ItemStack bg = null;
 		boolean empty = true;
 		for (String res : gui.getKeys(false)) {
 			if (!gui.contains(res + ".Icon"))
 				continue;
 			empty = false;
-			if (gui.contains(res + ".Permission") && !player.hasPermission(gui.getString(res + ".Permission"))) {
-				continue;
+			if (player.isOnline()) {
+				if (gui.contains(res + ".Permission")
+						&& !((Player) player).hasPermission(gui.getString(res + ".Permission"))) {
+					continue;
+				}
 			}
 			ItemStack item = parseItem(Main.plugin.gui, id + "." + res, player);
 			if (res.equals("BACKGROUND_ITEM")) {
@@ -303,7 +477,7 @@ public class PlayerManager {
 		return inv;
 	}
 
-	public ItemStack parseItem(ConfigurationSection section, String path, Player player) {
+	public ItemStack parseItem(ConfigurationSection section, String path, OfflinePlayer player) {
 		ConfigurationSection gui = section.getConfigurationSection(path);
 		ItemStack item = new ItemStack(Material.valueOf(gui.getString("Icon")));
 		List<String> lore = new ArrayList<String>();
@@ -311,18 +485,18 @@ public class PlayerManager {
 			item.setAmount(gui.getInt("Amount"));
 		if (gui.contains("Data"))
 			item.setDurability((short) gui.getInt("Data"));
-		if (gui.contains("SetDataTo")) {
-			if (getTeam(player) != null) {
-				String color = new GameManager().getColor(player.getWorld(), getTeam(player));
+		if (gui.contains("SetDataTo") && player.isOnline()) {
+			if (getTeam((Player) player) != null) {
+				String color = new GameManager().getColor(((Player) player).getWorld(), getTeam((Player) player));
 				item.setDurability(MSG.colorToByte(color).shortValue());
 			}
 		}
 		ItemMeta meta = item.getItemMeta();
 		if (gui.contains("Name"))
-			meta.setDisplayName(MSG.color("&r" + gui.getString("Name")));
+			meta.setDisplayName(MSG.color("&r" + parseStats(player, gui.getString("Name"))));
 		if (gui.contains("Lore")) {
 			for (String temp : gui.getStringList("Lore"))
-				lore.add(MSG.color("&r" + temp));
+				lore.add(MSG.color("&r" + parseStats(player, temp)));
 		}
 		if (gui.getBoolean("Unbreakable")) {
 			meta.spigot().setUnbreakable(true);
@@ -363,6 +537,13 @@ public class PlayerManager {
 		return item;
 	}
 
+	/**
+	 * Get whether an object is saveable in YAML
+	 * 
+	 * @param obj
+	 *            Object type to test
+	 * @return True if saveable, false otherwise
+	 */
 	public boolean isSaveable(Object obj) {
 		return (obj instanceof String || obj instanceof Integer || obj instanceof ArrayList || obj instanceof Boolean
 				|| obj == null || obj instanceof Double || obj instanceof Short || obj instanceof Long

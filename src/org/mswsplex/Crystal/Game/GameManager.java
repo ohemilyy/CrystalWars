@@ -6,8 +6,13 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.ArmorStand;
@@ -16,6 +21,7 @@ import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.mswsplex.Crystal.Utils.MSG;
@@ -29,6 +35,16 @@ public class GameManager {
 	PlayerManager pManager = new PlayerManager();
 	NBT NBT = new NBT();
 
+	/**
+	 * Stores certain types of data in data.yml (usually is temporary)
+	 * 
+	 * @param world
+	 *            World to store data in
+	 * @param id
+	 *            Id of data
+	 * @param data
+	 *            Object data (should be able to save in YML file)
+	 */
 	public void setInfo(World world, String id, Object data) { // Store info of the game
 		if (!pManager.isSaveable(data)) {
 			int currentLine = Thread.currentThread().getStackTrace()[2].getLineNumber();
@@ -41,19 +57,52 @@ public class GameManager {
 		this.data.set("Games." + world.getName() + "." + id, data);
 	}
 
+	/**
+	 * Object management
+	 * 
+	 * @param world
+	 *            World to get info in
+	 * @param id
+	 *            Id of object
+	 * @return returns object (can be null)
+	 */
 	public Object getInfo(World world, String id) {
 		return data.get("Games." + world.getName() + "." + id);
 	}
 
+	/**
+	 * Get status of a world
+	 * 
+	 * @param world
+	 *            World to get status in
+	 * @return Returns status, "disabled" if there is no game
+	 */
 	public String getStatus(World world) {
 		if (getInfo(world, "status") == null)
 			return "disabled";
 		return (String) getInfo(world, "status");
 	}
 
+	/**
+	 * Returns how much HP a crystal has
+	 * 
+	 * @param world
+	 *            World that crystal is in
+	 * @param team
+	 *            Team's crystal
+	 * @return 0.0 if dead, otherwise a real double
+	 */
 	public double getCrystalHP(World world, String team) {
 		return Main.plugin.data.getDouble("Games." + world.getName() + ".teams." + team + ".crystalHealth");
 	}
+
+	/**
+	 * Gets the an ArrayList of alive players
+	 * 
+	 * @param world
+	 *            World to get alive players in
+	 * @return List of alive players
+	 */
 
 	public List<Player> alivePlayers(World world) {
 		ConfigurationSection teams = data.getConfigurationSection("Games." + world.getName() + ".teams");
@@ -76,6 +125,7 @@ public class GameManager {
 	 * Automatically assigns teams to players that don't have a team
 	 * 
 	 * @param world
+	 *            World to assign teams in
 	 */
 	public void assignTeams(World world) {
 		if (getTeams(world) == null)
@@ -100,6 +150,7 @@ public class GameManager {
 	 * alive or not
 	 * 
 	 * @param world
+	 *            World to update names
 	 */
 	public void updateNames(World world) {
 		for (Player player : world.getPlayers()) {
@@ -120,6 +171,7 @@ public class GameManager {
 
 	/**
 	 * @param world
+	 *            World to get list of teams in
 	 * @return List of all teams in the world
 	 */
 	public List<String> getTeams(World world) {
@@ -134,6 +186,7 @@ public class GameManager {
 
 	/**
 	 * @param world
+	 *            World team is in
 	 * @param team
 	 *            to get alive players in
 	 * @return List of all players in the team
@@ -152,7 +205,9 @@ public class GameManager {
 
 	/**
 	 * @param world
+	 *            World that team is in
 	 * @param team
+	 *            Team to get status of
 	 * @return Returns string of status based on Config values
 	 */
 	public String getTeamStatus(World world, String team) {
@@ -170,7 +225,9 @@ public class GameManager {
 	/**
 	 * 
 	 * @param world
+	 *            World that team is in
 	 * @param team
+	 *            Team to get members
 	 * @return List of team members in a team
 	 */
 	public List<Player> getTeamMembers(World world, String team) {
@@ -187,6 +244,7 @@ public class GameManager {
 	/**
 	 * 
 	 * @param world
+	 *            World to get alive players in
 	 * @return List of teams with ALIVE players
 	 */
 	public List<String> getTeamsWithPlayers(World world) {
@@ -201,6 +259,7 @@ public class GameManager {
 	/**
 	 * 
 	 * @param world
+	 *            World to get teams
 	 * @return Returns what team has the least amount of players useful for
 	 *         assigning teams
 	 */
@@ -223,16 +282,20 @@ public class GameManager {
 	/**
 	 * 
 	 * @param world
+	 *            World that the team is in
 	 * @param team
-	 * @return Return what color the team has
+	 *            Name of team
+	 * @return Return what color the team has (&amp;c, &amp;e, etc)
 	 */
 	public String getColor(World world, String team) {
 		return (data.getString("Games." + world.getName() + ".teams." + team + ".color"));
 	}
 
 	/**
+	 * Returns who gets the most kills (null if no kills)
 	 * 
 	 * @param world
+	 *            World to get the MVP in
 	 * @return Player (if any) with most kills (null if none)
 	 */
 	public Player getMVP(World world) {
@@ -257,6 +320,7 @@ public class GameManager {
 	 * Teleports and starts the game, use startCountdown if you want a countdown
 	 * 
 	 * @param world
+	 *            World to start
 	 */
 	public void startGame(World world) {
 		setInfo(world, "status", "ingame" + System.currentTimeMillis());
@@ -281,6 +345,8 @@ public class GameManager {
 				pManager.spawnPlayer(target);
 				pManager.setInfo(target, "kills", 0.0);
 				pManager.setInfo(target, "purchases", null);
+				pManager.increment(target, "plays", 1);
+				pManager.increment(target, "quits", 1);
 				data.set("Games." + target.getWorld().getName() + ".teams." + team + ".members." + target.getName()
 						+ ".alive", true);
 			}
@@ -339,15 +405,112 @@ public class GameManager {
 		updateNames(world);
 	}
 
+	public void refreshSigns(World world) {
+		ConfigurationSection signs = Main.plugin.data.getConfigurationSection("SignLocation." + world.getName());
+		if (signs == null)
+			return;
+		for (String res : signs.getKeys(false)) {
+			if (res == null)
+				continue;
+			Location loc = Main.plugin.getLocation("SignLocation." + world.getName() + "." + res);
+			Block block = loc.getBlock();
+			if (block == null || (block.getType() != Material.WALL_SIGN && block.getType() != Material.SIGN_POST))
+				return;
+			((Sign) block.getState()).setLine(2,
+					MSG.color(getNamedStatus(Bukkit.getWorld(((Sign) block.getState()).getLine(1)))));
+		}
+	}
+
+	public void refreshLeaderboards(World world) {
+		ConfigurationSection boards = Main.plugin.data.getConfigurationSection("Leaderboards." + world.getName());
+		if (boards == null)
+			return;
+		for (Entity ent : world.getEntities()) {
+			if (ent.hasMetadata("leaderboard"))
+				ent.remove();
+		}
+		for (String res : boards.getKeys(false)) {
+			if (res == null)
+				continue;
+			Location loc = Main.plugin.getLocation("Leaderboards." + world.getName() + "." + res);
+			List<String> lines = Main.plugin.lang.getStringList("Leaderboards.Lines");
+			List<OfflinePlayer> players = pManager.getHighestRanks(res, lines.size());
+			lines = flip(lines);
+			for (String line : lines) {
+				String number = "";
+				for (int i = line.indexOf("%") + 1; i < line.length(); i++) {
+					if (line.charAt(i) == '%')
+						break;
+					number = number + line.charAt(i) + "";
+				}
+				int val = -1;
+				try {
+					val = Integer.parseInt(number) - 1;
+				} catch (Exception e) {
+				}
+				String name = line.replace("%statType%", MSG.camelCase(res));
+				ArmorStand stand = (ArmorStand) world.spawnEntity(loc, EntityType.ARMOR_STAND);
+				stand.setVisible(false);
+				stand.setGravity(false);
+				stand.setMetadata("leaderboard", new FixedMetadataValue(Main.plugin, null));
+				if (val != -1) {
+					if (players.size() > val) {
+						name = name.replace("%" + (val + 1) + "%",
+								MSG.getString("Leaderboards.Format", "%player% %stat%").replace("%player%",
+										players.get(val).getName()));
+						if (res.equals("playtime")) {
+							name = name.replace("%stat%",
+									new TimeManager().getTime(pManager.getNumberStat(players.get(val), res), 2));
+						} else {
+							name = name.replace("%stat%", ((int) pManager.getNumberStat(players.get(val), res) + "&r"));
+						}
+					} else {
+						name = name.replace("%" + (val + 1) + "%", "-");
+					}
+				}
+				stand.setCustomName(MSG.color((name)).trim());
+				stand.setCustomNameVisible(true);
+				loc.add(0, .3, 0);
+			}
+		}
+	}
+
+	public String getClosestLeaderboard(Location loc) {
+		ConfigurationSection boards = Main.plugin.data
+				.getConfigurationSection("Leaderboards." + loc.getWorld().getName());
+		if (boards == null)
+			return "";
+		String closest = "";
+		double dist = 0.0;
+		for (String res : boards.getKeys(false)) {
+			if (res == null)
+				continue;
+			Location tmp = Main.plugin.getLocation("Leaderboards." + loc.getWorld().getName() + "." + res);
+			if (tmp.distanceSquared(loc) <= dist || dist == 0) {
+				dist = tmp.distanceSquared(loc);
+				closest = res;
+			}
+		}
+		return closest;
+	}
+
+	private List<String> flip(List<String> array) {
+		List<String> result = new ArrayList<String>();
+		for (int i = array.size() - 1; i >= 0; i--) {
+			result.add(array.get(i));
+		}
+		return result;
+	}
+
 	/**
 	 * Ends the game and broadcasts win message
 	 * 
 	 * @param world
+	 *            World to stop
 	 */
 	@SuppressWarnings("deprecation")
 	public void winGame(World world) {
-		String winner = "";
-		winner = getTeamsWithPlayers(world).get(0);
+		String winner = getTeamsWithPlayers(world).get(0), winColor = getColor(world, winner);
 		Player mvp = getMVP(world);
 		for (String res : Main.plugin.lang.getStringList("Game.Over"))
 			MSG.tell(world,
@@ -362,20 +525,52 @@ public class GameManager {
 							.replace("%s%", pManager.getKills(mvp) == 1 ? "" : "s").replace("%map%", world.getName())
 							.replace("%builders%", getBuilders(world)));
 		for (Player player : world.getPlayers()) {
-			player.sendTitle(MSG.color(getColor(world, winner) + "&l" + MSG.camelCase(winner)),
-					MSG.color(getColor(world, winner) + "has won the game!"));
+			if (pManager.getTeam(player).equals(winner)) {
+				pManager.increment(player, "wins", 1);
+			} else {
+				pManager.increment(player, "losses", 1);
+			}
+			pManager.increment(player, "quits", -1);
+			pManager.increment(player, "playtime",
+					System.currentTimeMillis() - Double.valueOf(getStatus(world).substring("ingame".length())));
+			player.playSound(player.getLocation(), Sound.valueOf(Main.plugin.config.getString("Sounds.GameOver")), 2,
+					2);
+			player.sendTitle(
+					MSG.color(MSG.getString("Game.Won.Top", "%teamColor%%teamName%").replace("%teamColor%", winColor)
+							.replace("%teamName%", MSG.camelCase(winner))),
+					MSG.color(MSG.getString("Game.Won.Bottom", "%teamColor% won the game")
+							.replace("%teamColor%", winColor).replace("%teamName%", MSG.camelCase(winner))));
 		}
 		stopGame(world);
+	}
+
+	public String getNamedStatus(World world) {
+		ConfigurationSection section = Main.plugin.gui.getConfigurationSection("gameSelectionGui.Status");
+		if (world == null) {
+			return section.getString("Offline");
+		} else if (getStatus(world).contains("ingame")) {
+			return section.getString("InGame").replace("%players%", alivePlayers(world).size() + "");
+		} else if (getStatus(world).contains("countdown")) {
+			String time = new TimeManager()
+					.getRoundTimeMillis(Double.valueOf(getStatus(world).substring("countdown".length()))
+							- System.currentTimeMillis() + 1000);
+			return "Starts in " + time;
+		} else {
+			return "Waiting (" + world.getPlayers().size() + "/"
+					+ Main.plugin.data.getInt("Games." + world.getName() + ".maxSize") + ")";
+		}
 	}
 
 	/**
 	 * Ends the game, use winGame to broadcast win message
 	 * 
 	 * @param world
+	 *            World to stop
 	 */
 	@SuppressWarnings("unchecked")
 	public void stopGame(World world) {
 		for (Player target : world.getPlayers()) {
+			target.getEnderChest().clear();
 			target.teleport(Main.plugin.getLocation("Games." + world.getName() + ".lobby"));
 			target.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
 			target.getInventory().clear();
@@ -388,8 +583,13 @@ public class GameManager {
 		}
 		setInfo(world, "status", "lobby");
 		setInfo(world, "beginTimer", null);
-		for (String team : getTeams(world))
+		for (String team : getTeams(world)) {
 			Main.plugin.data.set("Games." + world.getName() + ".teams." + team + ".members", null);
+			// Deleting old data
+			for (String res : new String[] { "crystal", "coalShop", "teamShop", "endShop" }) {
+				Main.plugin.data.set("Games." + world.getName() + ".team" + res, null);
+			}
+		}
 		if (getInfo(world, "removeEntities") != null)
 			for (String uuid : ((List<String>) getInfo(world, "removeEntities"))) {
 				Entity ent = getEntityByUUID(UUID.fromString(uuid), world);
@@ -398,12 +598,15 @@ public class GameManager {
 			}
 		reloadWorld(world);
 		setInfo(world, "removeEntities", null);
+		Main.plugin.data.set("Games." + world.getName() + ".removeEntities", null);
+		Main.plugin.saveStats();
 	}
 
 	/**
 	 * Used for chest protection
 	 * 
 	 * @param loc
+	 *            Location to compare
 	 * @return Returns what team's crystal is closest
 	 */
 	public String getClosetCrystal(Location loc) {
@@ -428,6 +631,7 @@ public class GameManager {
 	 * Saves the world
 	 * 
 	 * @param world
+	 *            World to save
 	 */
 	public void saveWorld(World world) {
 		world.save();
@@ -439,6 +643,7 @@ public class GameManager {
 	 * specified)
 	 * 
 	 * @param world
+	 *            World to reload
 	 */
 	public void reloadWorld(World world) {
 		Location loc = Main.plugin.getLocation("Games." + world.getName() + ".endLocation");
@@ -459,7 +664,9 @@ public class GameManager {
 	 * Forces a game to crash
 	 * 
 	 * @param world
+	 *            World to stop game
 	 * @param reason
+	 *            Reason to stop world
 	 */
 	@SuppressWarnings("unchecked")
 	public void crashGame(World world, String reason) {
@@ -472,6 +679,13 @@ public class GameManager {
 					continue;
 				ent.remove();
 			}
+		for (String team : getTeams(world)) {
+			Main.plugin.data.set("Games." + world.getName() + ".teams." + team + ".members", null);
+			// Deleting old data
+			for (String res : new String[] { "crystal", "coalShop", "teamShop", "endShop" }) {
+				Main.plugin.data.set("Games." + world.getName() + ".team" + res, null);
+			}
+		}
 		setInfo(world, "removeEntities", null);
 		int currentLine = Thread.currentThread().getStackTrace()[2].getLineNumber();
 		String fromClass = new Exception().getStackTrace()[1].getClassName();
@@ -489,8 +703,10 @@ public class GameManager {
 	 * worlds
 	 * 
 	 * @param uuid
+	 *            UUID to search by
 	 * @param world
-	 * @return
+	 *            World to search for UUID in, can be null
+	 * @return Entity by the UUID, if not found then null
 	 */
 	public Entity getEntityByUUID(UUID uuid, World world) {
 		if (world == null) {

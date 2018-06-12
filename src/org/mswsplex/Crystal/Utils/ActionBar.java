@@ -72,7 +72,9 @@ public class ActionBar {
 	 * Sends the hotbar message 'message' to the player 'player'
 	 *
 	 * @param player
+	 *            Player to send message to
 	 * @param message
+	 *            Message String (not translated to ChatColor)
 	 */
 	public static void sendHotBarMessage(Player player, String message) {
 		try {

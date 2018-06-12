@@ -1,6 +1,6 @@
 name: CrystalWars
 main: org.mswsplex.MSWS.Crystal.Main
-version: 1.1
+version: 1.2
 description: CrystalWars
 commands:
    cw:

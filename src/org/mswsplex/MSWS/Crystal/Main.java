@@ -25,9 +25,10 @@ public class Main extends JavaPlugin {
 	public static Main plugin;
 
 	// Data folders, lang will contain most messages
-	public FileConfiguration config, data, lang, gui;
+	public FileConfiguration config, data, lang, gui, stats;
 	public File configYml = new File(getDataFolder(), "config.yml"), dataYml = new File(getDataFolder(), "data.yml"),
-			langYml = new File(getDataFolder(), "lang.yml"), guiYml = new File(getDataFolder(), "guis.yml");
+			langYml = new File(getDataFolder(), "lang.yml"), guiYml = new File(getDataFolder(), "guis.yml"),
+			statsYml = new File(getDataFolder(), "stats.yml");
 
 	// Basic utilities
 	GameManager gManager;
@@ -36,9 +37,9 @@ public class Main extends JavaPlugin {
 
 	/*
 	 * Permissions: crystal.command - allows usage of /cw crystal.[command] - allows
-	 * usage of /cw set, /cw create, etc crystal.kit.[kitName]
-	 * 
-	 * More information at lang.yml
+	 * usage of /cw set, /cw create, etc crystal.kit.[kitName] crystal.sign - allows
+	 * creation of CrystalWars signs crystal.sign.delete crystal.stats.others -
+	 * allows viewing of other's stats More information at lang.yml
 	 */
 
 	public void onEnable() {
@@ -54,7 +55,7 @@ public class Main extends JavaPlugin {
 		data = YamlConfiguration.loadConfiguration(dataYml);
 		lang = YamlConfiguration.loadConfiguration(langYml);
 		gui = YamlConfiguration.loadConfiguration(guiYml);
-
+		stats = YamlConfiguration.loadConfiguration(statsYml);
 		for (String section : new String[] { "Games" }) {
 			if (data.getConfigurationSection(section) == null)
 				data.createSection(section);
@@ -99,12 +100,14 @@ public class Main extends JavaPlugin {
 				gManager.assignTeams(world);
 				gManager.setInfo(world, "status", "lobby");
 			}
+			gManager.refreshSigns(world);
 		}
 
 		MSG.log("&aSuccessfully Enabled! (Took " + tManager.getTime(System.currentTimeMillis() - startTime, 2) + ")");
 	}
 
 	public void onDisable() {
+		Main.plugin.saveStats();
 		if (gManager == null)
 			return;
 		// Stop games that are currently going
@@ -134,7 +137,18 @@ public class Main extends JavaPlugin {
 		try {
 			config.save(configYml);
 		} catch (Exception e) {
-			MSG.log("&cError saving data file");
+			MSG.log("&cError saving config file");
+			MSG.log("&a----------Start of Stack Trace----------");
+			e.printStackTrace();
+			MSG.log("&a----------End of Stack Trace----------");
+		}
+	}
+
+	public void saveStats() {
+		try {
+			stats.save(statsYml);
+		} catch (Exception e) {
+			MSG.log("&cError saving stats file");
 			MSG.log("&a----------Start of Stack Trace----------");
 			e.printStackTrace();
 			MSG.log("&a----------End of Stack Trace----------");
