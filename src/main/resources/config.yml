@@ -1,0 +1,193 @@
+#Thank you for downloading CrystalWars!
+#CrystalWars is a multi-team functional minigame
+#Where your goal is to eliminate other team's crystals
+#Below are the defaults set for games and you can change them however you like
+#I recommend keeping things how they are, however, if you know what you're
+#Doing then go ahead and go crazy
+#Documentation will be listed where necessary
+#If you have any questions feel free to contact me at MSWS#9499
+
+
+# /-----------------------------\
+# |                             |
+# |        Quick Settings       |
+# |                             |
+# \-----------------------------/
+Prefix: '&5&l(&dCrystal&5&l)&7'
+HelpLength: 10
+BeginningTimer: 7
+DefaultCountdown: 20
+MaxCrystalHealth: 100
+HealthBarLength: 20
+RespawnTime: 5
+#In Seconds
+LeaderboardRefreshRate: 60
+#Simply say what Class and line logs are sent from
+DetailedLogs: false
+OreRespawn: #In seconds
+  Min: 30
+  Max: 60
+#Enable this to disguise the /cw command to players without permission.
+FakeInvalidCommand: false
+
+# /-----------------------------\
+# |                             |
+# |        Chat Settings        |
+# |                             |
+# \-----------------------------/
+ChatFormat:
+  Enabled: true
+  Format: '%teamColor%%player%&r %message%'
+Status: #Statuses will also appear next to player usernames when they die
+  CrystalAlive: "\u2713"
+  CrystalDead: '%amo%'
+  Dead: "\u2717"
+  
+# /-----------------------------\
+# |                             |
+# |        Sound Settings       |
+# |                             |
+# \-----------------------------/
+#Customize sounds below, make sure to specify a valid sound
+#or you will be spammed errors
+Sounds:
+  Countdown: 'NOTE_PLING' #Sound from the scoreboard when the timer is <=10
+  ActionSound: 'CLICK' #Sound that the action bar will make when the game starts
+  ActionStart: 'NOTE_PLING' #Sound that action bar will make when the action timer ends
+  BowCharge: 'NOTE_PLING' #Sound that will be played while an arrow is charing
+  ItemGiven: 'ITEM_PICKUP' #Sound played when a player receives an item from their kit
+  Kill: 'LEVEL_UP' #Sound that's played to someone when they kill someone
+  GameOver: 'LEVEL_UP' #Sound played when game ends
+  CrystalHit: 'SILVERFISH_HIT' #Sound played by crystal when it's hit
+  PlayerHitCrystal: 'BLAZE_HIT' #Sound played to someone when they damage the crystal
+  DoubleJump: 'GHAST_FIREBALL' #Sound played when someone double jumps/leaps
+  IncorrectInventory: 'ITEM_BREAK' #Sound played when someone clicks on an empty slot in a GUI
+  KitSelected: 'LEVEL_UP' #Sound played when someone selects a kit from /kit
+  InvalidBalance: 'HORSE_BREATHE' #Sound played when someone attempts to buy something they can't afford
+  Purchase: 'LEVEL_UP' #Sound played when someone purchases an item 
+
+  
+# /-----------------------------\
+# |                             |
+# |         Kit Settings        |
+# |                             |
+# \-----------------------------/
+#Permission for kits: cw.kit.[kitName], customize GUI in guis.yml
+#You can add whatever kits you want, just make sure to add the
+#Permission to the wanted players
+Kits: #Same syntax in guis.yml
+  Archer:
+    sword:
+      Icon: WOOD_SWORD
+      Unbreakable: true
+    bow:
+      Icon: BOW
+      Unbreakable: true
+    receive:
+      arrow: #Players with kit archer will receive 1 arrow every 7 seconds, max 5
+        Icon: ARROW
+        Name: '&eArcher Arrow'
+        Rate: 7
+        Max: 5
+    attributes:
+      poweredBow: 1000 #Archers can charge a bow for 1 second, the arrow will break wool
+  Fighter:
+    sword:
+      Icon: STONE_SWORD
+      Unbreakable: true
+    attributes:
+    #Fighters will deal 4 more damage points
+      damage: 4 
+  Builder:
+    sword:
+      Icon: WOOD_SWORD
+      Unbreakable: true
+    receive:
+      wool:
+        Icon: WOOL
+        Name: '&eBuilder Block'
+        SetDataTo: true
+        Rate: 2
+        Max: 32
+  Ninja:
+    receive:
+      ball:
+        Icon: SNOW_BALL
+        Name: '&dNinja Star'
+        Rate: 5
+        Max: 2
+    attributes:
+      doubleJump: 30 #Ninjas will be able to use double jump every 30 seconds
+      fallDamage: false #Ninjas will also not take any fall damage
+# /-----------------------------\
+# |                             |
+# |      Gameplay Settings      |
+# |                             |
+# \-----------------------------/
+BreakableBlocks:
+  default: #Blocks that can be broken in any world unless a manual list is set
+  - 'WOOL'
+  - 'LONG_GRASS'
+  - 'STAINED_GLASS'
+  - 'DIAMOND_ORE'
+  - 'COAL_ORE'
+  - 'REDSTONE_ORE'
+  - 'QUARTZ_ORE'
+  - 'LAPIS_ORE'
+  - 'GOLD_ORE'
+  - 'TNT'
+  - 'OBSIDIAN'
+  - 'LEAVES'
+  - 'LEAVES_2'
+ #game0: #in game0, only Netherrack would be breakable
+ #- NETHERRACK
+ArrowsBreak: #Blocks that can be broken in any world BY AN ARROW (with the poweredBow Attribute) same rules as above
+  default:
+  - 'WOOL'
+ #game0:
+ #- 'WOOL'
+ #- 'STAINED_GLASS'
+# /-----------------------------\
+# |                             |
+# |     Scoreboard Settings     |
+# |                             |
+# \-----------------------------/
+Scoreboard:
+  ActionTimeLeft: '&lGame Start [%progressBar%&r&l] &a%time%'
+  Title:
+    InGame: '&d&lCRYSTALWARS'
+    Lobby: '&d&lWaiting for players...'
+    Countdown: '&d&lStarting in &b&l%startTime%'
+  Lobby:
+  - '&b&lServer'
+  - '&d%world%'
+  - ''
+  - '&b&lPlayers'
+  - '&d%players%/%maxSize%'
+  - ''
+  - '&b&lTeam'
+  - '%teamColor%%teamName%'
+  - ''
+  - '&b&lKit'
+  - '&d%kit%'
+  #Set separate scoreboards for ingame per world here, if no scoreboard is set then default will be used
+  default:
+  - '&6&lAlive Teams'
+  - '&6%alivePlayers%'
+  - ''
+  - '%red_Status% %team_red%'
+  - '%yellow_Status% %team_yellow%'
+  - '%green_Status% %team_green%'
+  - '%blue_Status% %team_blue%'
+  - ''
+  - '&c&lPlaytime'
+  - '&e%time%'
+  #game0:
+  #- '&6&lAlive Teams'
+  #- '&6%alivePlayers%'
+  #- ''
+  #- '%team_red%: %red_Status%'
+  #- '%team_blue%: %blue_Status%'
+  #- ''
+  #- '&c&lPlaytime'
+  #- '&e%time%'

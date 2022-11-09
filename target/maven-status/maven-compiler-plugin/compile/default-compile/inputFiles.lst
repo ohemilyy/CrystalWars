@@ -1,0 +1,14 @@
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Commands/CrystalCommand.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Utils/ReflectionHandler.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Commands/TeamCommand.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/MSWS/Crystal/Main.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Game/GameManager.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Events/Events.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Scoreboard/SBoard.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Utils/NBT.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Utils/MSG.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Game/Timer.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Utils/TimeManager.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Commands/KitCommand.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Utils/ActionBar.java
+/workspaces/CrystalWars/src/main/java/org/mswsplex/Crystal/Utils/PlayerManager.java
