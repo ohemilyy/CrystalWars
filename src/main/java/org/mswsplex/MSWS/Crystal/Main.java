@@ -3,6 +3,7 @@ package org.mswsplex.MSWS.Crystal;
 import java.io.File;
 import java.util.List;
 
+import io.github.nosequel.scoreboard.ScoreboardHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -18,6 +19,7 @@ import org.mswsplex.Crystal.Events.Events;
 import org.mswsplex.Crystal.Game.GameManager;
 import org.mswsplex.Crystal.Game.Timer;
 import org.mswsplex.Crystal.Scoreboard.SBoard;
+import org.mswsplex.Crystal.Scoreboard.ScoreboardImpl;
 import org.mswsplex.Crystal.Utils.MSG;
 import org.mswsplex.Crystal.Utils.TimeManager;
 
@@ -60,6 +62,9 @@ public class Main extends JavaPlugin {
 			if (data.getConfigurationSection(section) == null)
 				data.createSection(section);
 		}
+
+		new ScoreboardHandler(this, new ScoreboardImpl(), 20L);
+
 
 		// Load game maps if they aren't loaded
 		for (String res : data.getConfigurationSection("Games").getKeys(false))
