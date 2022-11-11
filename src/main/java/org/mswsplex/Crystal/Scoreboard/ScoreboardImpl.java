@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+//SEE HER DOCUMENTATION HERE https://github.com/NoSequel/ScoreboardAPI
 public class ScoreboardImpl implements ScoreboardElementHandler {
     PlayerManager pManager = new PlayerManager();
     TimeManager tManager = new TimeManager();
